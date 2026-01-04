@@ -1,14 +1,21 @@
 import fs from 'fs';
-import path from 'path';
+import { execSync } from 'child_process';
 
-const src = fs.readFileSync('src/index.js', 'utf8');
+// Compile TypeScript
+try {
+  execSync('npx tsc', { stdio: 'inherit' });
+} catch (error) {
+  console.error('TypeScript compilation failed');
+  process.exit(1);
+}
 
-fs.mkdirSync('dist', { recursive: true });
+// Read compiled JS
+const src = fs.readFileSync('dist/index.js', 'utf8');
 
-// for esm
+// Create ESM version
 fs.writeFileSync('dist/index.mjs', src);
 
-// for cjs
+// Create CJS version
 fs.writeFileSync(
   'dist/index.cjs',
   src.replace('export default', 'module.exports =')

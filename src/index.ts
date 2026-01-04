@@ -5,20 +5,52 @@
  * for V8's fast path JSON.stringify optimization (available in V8 13.8+/Chrome 138+)
  */
 
+interface Warning {
+  type: string;
+  path?: string;
+  message: string;
+  impact: 'high' | 'medium' | 'low';
+  suggestion: string;
+}
+
+interface ValidationResult {
+  isOptimized: boolean;
+  canUseFastPath: boolean;
+  warnings: Warning[];
+  summary: string;
+}
+
+interface StringifyResult {
+  json: string;
+  validation: ValidationResult;
+  optimized: boolean;
+}
+
+interface BenchmarkResult {
+  iterations: number;
+  totalTime: number;
+  averageTime: number;
+  opsPerSecond: number;
+  validation: ValidationResult;
+}
+
+interface OptimizerOptions {
+  strict?: boolean;
+}
+
 export default class JSONOptimizer {
-  constructor(options = {}) {
+  private warnings: Warning[] = [];
+  private strictMode: boolean;
+
+  constructor(options: OptimizerOptions = {}) {
     this.warnings = [];
     this.strictMode = options.strict || false;
   }
 
   /**
    * Validates if an object can use V8's fast path for JSON.stringify
-   * @param {any} obj - The object to validate
-   * @param {Function|null} replacer - Optional replacer function
-   * @param {string|number|null} space - Optional space parameter
-   * @returns {Object} Validation result with isOptimized flag and warnings
    */
-  validate(obj, replacer = null, space = null) {
+  validate(obj: any, replacer: ((key: string, value: any) => any) | null = null, space: string | number | null = null): ValidationResult {
     this.warnings = [];
 
     if (replacer !== null) {
@@ -49,7 +81,7 @@ export default class JSONOptimizer {
     };
   }
 
-  _validateObject(obj, path = '') {
+  private _validateObject(obj: any, path = ''): void {
     if (obj === null || obj === undefined) return;
 
     const type = typeof obj;
@@ -136,7 +168,7 @@ export default class JSONOptimizer {
     }
   }
 
-  _generateSummary() {
+  private _generateSummary(): string {
     const highImpact = this.warnings.filter(w => w.impact === 'high').length;
     const mediumImpact = this.warnings.filter(w => w.impact === 'medium').length;
     const lowImpact = this.warnings.filter(w => w.impact === 'low').length;
@@ -150,17 +182,15 @@ export default class JSONOptimizer {
 
   /**
    * Attempts to optimize an object for fast path serialization
-   * @param {any} obj - The object to optimize
-   * @returns {any} Optimized version of the object
    */
-  optimize(obj) {
+  optimize(obj: any): any {
     if (obj === null || typeof obj !== 'object') return obj;
 
     if (Array.isArray(obj)) {
       return obj.map(item => this.optimize(item));
     }
 
-    const optimized = {};
+    const optimized: Record<string, any> = {};
     const keys = Object.keys(obj);
 
     keys.forEach(key => {
@@ -178,12 +208,8 @@ export default class JSONOptimizer {
 
   /**
    * Safe stringify with validation
-   * @param {any} obj - Object to stringify
-   * @param {Function|null} replacer - Optional replacer
-   * @param {string|number|null} space - Optional space
-   * @returns {Object} Result with json string and validation info
    */
-  stringify(obj, replacer = null, space = null) {
+  stringify(obj: any, replacer: ((key: string, value: any) => any) | null = null, space: string | number | null = null): StringifyResult {
     const validation = this.validate(obj, replacer, space);
     const json = JSON.stringify(obj, replacer, space);
 
@@ -196,11 +222,8 @@ export default class JSONOptimizer {
 
   /**
    * Benchmark stringify performance
-   * @param {any} obj - Object to benchmark
-   * @param {number} iterations - Number of iterations
-   * @returns {Object} Performance metrics
    */
-  benchmark(obj, iterations = 1000) {
+  benchmark(obj: any, iterations = 1000): BenchmarkResult {
     const start = performance.now();
 
     for (let i = 0; i < iterations; i++) {

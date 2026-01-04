@@ -18,10 +18,12 @@
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
@@ -30,6 +32,9 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node tests/optimizer.test.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   },
   "bugs": {
     "url": "https://github.com/0xlakshan/fast-json-stringify/issues"
